@@ -6,7 +6,7 @@ cluster = motor.motor_asyncio.AsyncIOMotorClient(f"mongodb://{CONFIG.DATABASE}")
 
 
 def create_sync_session():
-    client = cluster.testBot
-    collection = client.testBot
-    return collection
+    client = cluster.chatbotSNG
+    #collection = client.tarifs
+    return client
 

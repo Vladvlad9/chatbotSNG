@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class BotSchema(BaseModel):
     TOKEN: str
-    ADMINS: list[int]
+    ADMINS: list
 
 
 class ConfigSchema(BaseModel):
