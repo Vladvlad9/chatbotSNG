@@ -1,0 +1,8 @@
+{
+  "BOT": {
+    "TOKEN": "5571028586:AAG_x09KdckCKDaduGwHq9jSyP2sbqLcBKo",
+    "ADMINS": [381252111]
+  },
+  "DATABASE": "app:IPna2eocn9a1XqNEVrbL@'localhost:27017/chatbotSNG?authSource=admin"
+
+}
