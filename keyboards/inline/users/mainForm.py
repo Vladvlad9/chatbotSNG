@@ -20,17 +20,26 @@ main_cb = CallbackData("main", "target", "action", "id", "editId")
 class MainForms:
     @staticmethod
     async def back_ikb(target: str, action: str) -> InlineKeyboardMarkup:
+        """
+        Общая кнопка назад
+        :param target: указать для CallbackData параметр для первого запроса
+        :param action: указать для CallbackData параметр для первого под запроса
+        :return: Возвращает клавиатуру
+        """
         return InlineKeyboardMarkup(
             inline_keyboard=[
                 [
-                    InlineKeyboardButton(text="◀️ Назад",
-                                         callback_data=main_cb.new(target, action, 0, 0))
+                    InlineKeyboardButton(text="◀️ Назад", callback_data=main_cb.new(target, action, 0, 0))
                 ]
             ]
         )
 
     @staticmethod
     async def open_site_kb() -> ReplyKeyboardMarkup:
+        """
+        Клавиатура для перехода на сайт
+        :return: возвтращет клавиатуру с одной кнопкой
+        """
         return ReplyKeyboardMarkup(
             row_width=2,
             resize_keyboard=True,
@@ -39,15 +48,17 @@ class MainForms:
                 [
                     KeyboardButton(text='Войти',
                                    web_app=WebAppInfo(url="https://transcendent-tanuki-81f3c0.netlify.app")
-                                   ),
-                    KeyboardButton(text='Назад',
-                                   callback_data=main_cb.new("Profile", "get_profile", 0, 0))
+                                   )
                 ]
             ]
         )
 
     @staticmethod
     async def get_profile() -> InlineKeyboardMarkup:
+        """
+        Клавиатура Главного меню
+        :return: Возвращает клавитуру с двумя кнопками
+        """
         data_main_menu = {
             "Профиль": {"target": "Profile", "action": "get_profile", "user_id": 0},
             "Тарифы": {"target": "Tariff", "action": "get_tariff", "user_id": 0}
@@ -65,6 +76,11 @@ class MainForms:
 
     @staticmethod
     async def select_tariff_ikb(tariff_id) -> InlineKeyboardMarkup:
+        """
+        Клавиатура которая находиться в "Тарифах" в которой
+        :param tariff_id:
+        :return:
+        """
         data_main_menu = {
             "Подключить": {
                 "target": "Tariff", "action": "subscription_days", "tariff_id": tariff_id
@@ -86,6 +102,10 @@ class MainForms:
 
     @staticmethod
     async def get_tariff() -> InlineKeyboardMarkup:
+        """
+        Клавитура которая находитьс в "тарифах"  для вывода имеющихся в БД тарифы (сор. за тавтологию)
+        :return: возвр. клавиатуру с тарифами
+        """
         client = await create_mongo_session()
 
         data = {}
@@ -107,6 +127,15 @@ class MainForms:
 
     @staticmethod
     async def subscription_days_ikb(tariff_id: str):
+        """
+        Клавиатура для выбора дней подписки на тариф
+        * days - (форма передачи данных) _пояснение что происходот_ '1_0'
+            первый параметр (1) это id месяца, второй параметр (0) это процент который нужно передать в
+            другую клавиатуру
+
+        :param tariff_id: для хранения id тарифа
+        :return: возвр. клавиатуру с выбором месяца
+        """
         subscriptionDataOne = {
             "1 Месяц": {"target": "Tariff", "action": "activate_tariff", "tariff_id": tariff_id, "days": "1_0"},
             "3 М. (-3%)": {"target": "Tariff", "action": "activate_tariff", "tariff_id": tariff_id, "days": "3_3"}
@@ -144,6 +173,12 @@ class MainForms:
 
     @staticmethod
     async def activate_tariff(tariff_name: str, price: int) -> InlineKeyboardMarkup:
+        """
+        Клавиатура
+        :param tariff_name: Передача имени тарифа для дальнейшего вывода его
+        :param price: цена выбранного тарифа выше
+        :return: Клавиатуру с одной кнопкой
+        """
         data_main_menu = {
             "Оплатить": {
                 "target": "Tariff", "action": "pay", "price": price, "tariff_id": tariff_name
