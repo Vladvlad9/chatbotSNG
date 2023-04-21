@@ -6,6 +6,12 @@ class BotSchema(BaseModel):
     ADMINS: list
 
 
+class DateBaseSchema(BaseModel):
+    MONGO: str
+    POSTGRES: str
+
+
 class ConfigSchema(BaseModel):
     BOT: BotSchema
-    DATABASE: str
+    DATABASE: DateBaseSchema
+    PAYTOKEN: str

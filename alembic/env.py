@@ -39,7 +39,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = f"postgresql://{CONFIG.DATABASE}"
+    url = f"postgresql://{CONFIG.DATABASE.POSTGRES}"
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -59,7 +59,7 @@ def run_migrations_online() -> None:
 
     """
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section) | {"sqlalchemy.url": f"postgresql://{CONFIG.DATABASE}"},
+        config.get_section(config.config_ini_section) | {"sqlalchemy.url": f"postgresql://{CONFIG.DATABASE.POSTGRES}"},
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
