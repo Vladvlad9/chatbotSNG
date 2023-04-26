@@ -1,4 +1,5 @@
 import datetime
+from datetime import datetime, date
 from decimal import Decimal
 from aiogram import types
 from aiogram.dispatcher import FSMContext
@@ -8,9 +9,7 @@ from aiogram.utils.callback_data import CallbackData
 from aiogram.utils.exceptions import BadRequest
 
 from config import CONFIG
-from crud.userCRUD import CRUDUser
 from loader import bot
-from models.engine import create_mongo_session
 from mongoCRUD.tariffMCRUD import MongoCRUDTariff
 from mongoCRUD.userMCRUD import MongoCRUDUser
 
@@ -18,6 +17,34 @@ main_cb = CallbackData("main", "target", "action", "id", "editId")
 
 
 class MainForms:
+
+    @staticmethod
+    async def days_until_tariff_expiry(expiry_date):
+        """
+        This function calculates the number of days remaining until the expiry date of a tariff.
+
+        Parameters:
+        expiry_date (datetime): The expiry date of the tariff in the format 'YYYY-MM-DD'
+
+        Returns:
+        int: The number of days remaining until the expiry date
+        """
+        try:
+            # Convert the expiry date string to a datetime object
+            expiry_date1 = datetime(year=expiry_date.year, month=expiry_date.month, day=expiry_date.day).date()
+            # Calculate the number of days remaining until the expiry date
+            days_remaining = (expiry_date1 - date.today()).days
+
+            # Return the number of days remaining
+            if days_remaining <= 0:
+                return 0
+            else:
+                return days_remaining
+        except ValueError as e:
+            # Log the error
+            print(f"Error: {e}")
+            return 0
+
     @staticmethod
     async def back_ikb(target: str, action: str) -> InlineKeyboardMarkup:
         """
@@ -106,13 +133,12 @@ class MainForms:
         Клавитура которая находитьс в "тарифах"  для вывода имеющихся в БД тарифы (сор. за тавтологию)
         :return: возвр. клавиатуру с тарифами
         """
-        client = await create_mongo_session()
 
         data = {}
-        collection = client.tarifs
-        async for tariff in collection.find():
-            data[tariff['Name']] = {"target": "Tariff", "action": "selectTariff", "tariff_id": tariff['_id']}
-        data['Назад'] = {"target": "Profile", "action": "get_profile", "tariff_id": 0}
+        get_tariffs = await MongoCRUDTariff.get_all()
+        for i in get_tariffs:
+            data[i['Name']] = {"target": "Tariff", "action": "selectTariff", "tariff_id": i['id']}
+        data['Назад'] = {"target": "MainForm", "action": "get_main_form", "tariff_id": 0}
 
         return InlineKeyboardMarkup(
             inline_keyboard=[
@@ -209,22 +235,21 @@ class MainForms:
                                                          reply_markup=await MainForms.get_profile())
 
                 elif data.get("target") == "Profile":
-                    # переписать код для даты!
                     if data.get("action") == "get_profile":
-                        user = await CRUDUser.get(user_id=callback.from_user.id)
-                        mongo_user = await MongoCRUDUser.get(email=user.email, password=user.password)
+                        mongo_user = await MongoCRUDUser.get(telegram_id=callback.from_user.id)
+                        get_tariff_name = await MongoCRUDTariff.get(tariff_id=mongo_user['Tariff'])
 
-                        get_tariff = await MongoCRUDTariff.get(tariff_id=mongo_user['Tariff'])
-                        current_date = datetime.datetime.today().date()
-                        get_tariffEnd = str(mongo_user['TariffEnd']).split("-")
+                        days_until_tariff = await MainForms.days_until_tariff_expiry(
+                            expiry_date=mongo_user['TariffEnd'])
 
-                        a = datetime.date(int(get_tariffEnd[0]), int(get_tariffEnd[1]), int(get_tariffEnd[2]))
-                        daysLeft = a - current_date
+                        if days_until_tariff == 0:
+                            tariff_text = f"Ваша подписка на тариф закончилась <i>{mongo_user['TariffEnd']}</i>\n"
+                        else:
+                            tariff_text = f"Тариф заканчивается  через {days_until_tariff} дней " \
+                                          f"- <i>{mongo_user['TariffEnd']}</i>\n"
 
-                        dd = str(daysLeft)
-
-                        text = f"Ваш тариф - <i>{get_tariff['Name']}</>\n" \
-                               f"Тариф заканчивается  через {dd.split()[0]} дней - <i>{mongo_user['TariffEnd']}</i>\n" \
+                        text = f"Ваш тариф - <i>{get_tariff_name['Name']}</>\n" \
+                               f"{tariff_text}" \
                                f"Баланс - <i>{mongo_user['Money']}</i>"
 
                         await callback.message.edit_text(text=f"Профиль\n\n{text}",
@@ -295,17 +320,3 @@ class MainForms:
                                                payload='some-invoice-payload-for-our-internal-use'
                                                )
                         pass
-
-        if message:
-            await message.delete()
-
-            try:
-                await bot.delete_message(
-                    chat_id=message.from_user.id,
-                    message_id=message.message_id - 1
-                )
-            except BadRequest:
-                pass
-
-            if state:
-                pass

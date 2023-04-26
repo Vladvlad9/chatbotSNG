@@ -5,4 +5,3 @@ pydantic==1.9.1
 SQLAlchemy==1.4.39
 motor~=3.1.2
 alembic~=1.10.3
-pymongo~=4.3.3

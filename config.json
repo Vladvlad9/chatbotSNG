@@ -1,8 +1,11 @@
 {
   "BOT": {
-    "TOKEN": "5571028586:AAG_x09KdckCKDaduGwHq9jSyP2sbqLcBKo",
+    "TOKEN": "5653050931:AAGIWn3VAbTps7FjvP-BXn3ZZJa6ysOmVwc",
     "ADMINS": [381252111]
   },
-  "DATABASE": "app:IPna2eocn9a1XqNEVrbL@'localhost:27017/chatbotSNG?authSource=admin"
-
+  "DATABASE": {
+    "MONGO": "localhost:27017",
+    "POSTGRES": "postgres:postgres@localhost:5432/bot_kits"
+  },
+  "PAYTOKEN" : "381764678:TEST:55109"
 }
