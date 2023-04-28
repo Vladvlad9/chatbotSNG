@@ -22,12 +22,19 @@ class MongoCRUDUser(object):
 
     @staticmethod
     @mongo_async_decorator
-    async def update(client, email: str, password: str, telegramId: str):
+    async def update(client, email: str, password: str, telegramId: str = None, money: int = None):
         try:
             collection = client["chatbotSNG"]['users']
-            user = await collection.update_one({"Email": email, "Password": password},
-                                        {'$set': {"TelegramId": telegramId}}
-                                        )
+            if money:
+                user = await collection.update_one({"Email": email, "Password": password},
+                                                   {'$set': {"Money": money}}
+                                                   )
+            else:
+                user = await collection.update_one({"Email": email, "Password": password},
+                                                   {'$set': {"TelegramId": telegramId}}
+
+                                                   )
+
             return user.raw_result['updatedExisting']
         except OperationFailure as e:
             print(f"Error {e}")

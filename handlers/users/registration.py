@@ -42,6 +42,18 @@ from states.users.userState import UserStates
 #     user = await collection.find_one({"Email": email, "Password": password})
 #     return user
 
+@dp.message_handler(commands=["start"], state=UserStates.all_states)
+async def registration_start(message: types.Message, state: FSMContext):
+    await state.finish()
+    get_user = await MongoCRUDUser.get(telegram_id=message.from_user.id)
+    if get_user:
+        await message.answer(text="Главное меню",
+                             reply_markup=await MainForms.get_profile())
+    else:
+        await message.answer(text="Добро пожаловать в Bot Kits"
+                                  "Что бы авторизоваться в системе нужно пройти аутентификацию",
+                             reply_markup=await MainForms.open_site_kb())
+
 
 @dp.callback_query_handler(main_cb.filter())
 @dp.callback_query_handler(main_cb.filter(), state=UserStates.all_states)
@@ -84,6 +96,9 @@ async def registration_start(message: types.Message):
     pass
 
 
+
+
+
 @dp.message_handler(commands=["start"])
 async def registration_start(message: types.Message):
     #get_user = await CRUDUser.get(user_id=message.from_user.id)
@@ -95,6 +110,9 @@ async def registration_start(message: types.Message):
         await message.answer(text="Добро пожаловать в Bot Kits"
                                   "Что бы авторизоваться в системе нужно пройти аутентификацию",
                              reply_markup=await MainForms.open_site_kb())
+
+
+
 
 
 @dp.message_handler(content_types=['web_app_data'])

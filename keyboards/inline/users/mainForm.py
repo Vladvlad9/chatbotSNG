@@ -12,6 +12,7 @@ from config import CONFIG
 from loader import bot
 from mongoCRUD.tariffMCRUD import MongoCRUDTariff
 from mongoCRUD.userMCRUD import MongoCRUDUser
+from states.users.userState import UserStates
 
 main_cb = CallbackData("main", "target", "action", "id", "editId")
 
@@ -88,6 +89,7 @@ class MainForms:
         """
         data_main_menu = {
             "Профиль": {"target": "Profile", "action": "get_profile", "user_id": 0},
+            "Промокод": {"target": "PromoCode", "action": "get_promo", "user_id": 0},
             "Тарифы": {"target": "Tariff", "action": "get_tariff", "user_id": 0}
         }
         return InlineKeyboardMarkup(
@@ -231,6 +233,7 @@ class MainForms:
 
                 if data.get("target") == "MainForm":
                     if data.get("action") == "get_main_form":
+                        await state.finish()
                         await callback.message.edit_text(text="Главное меню",
                                                          reply_markup=await MainForms.get_profile())
 
@@ -238,26 +241,32 @@ class MainForms:
                     if data.get("action") == "get_profile":
                         mongo_user = await MongoCRUDUser.get(telegram_id=callback.from_user.id)
                         get_tariff_name = await MongoCRUDTariff.get(tariff_id=mongo_user['Tariff'])
+                        if get_tariff_name:
+                            days_until_tariff = await MainForms.days_until_tariff_expiry(
+                                expiry_date=mongo_user['TariffEnd'])
 
-                        days_until_tariff = await MainForms.days_until_tariff_expiry(
-                            expiry_date=mongo_user['TariffEnd'])
+                            if days_until_tariff == 0:
+                                tariff_text = f"Ваша подписка на тариф закончилась <i>{mongo_user['TariffEnd']}</i>\n"
+                            else:
+                                tariff_text = f"Тариф заканчивается  через {days_until_tariff} дней " \
+                                              f"- <i>{mongo_user['TariffEnd']}</i>\n"
 
-                        if days_until_tariff == 0:
-                            tariff_text = f"Ваша подписка на тариф закончилась <i>{mongo_user['TariffEnd']}</i>\n"
+                            text = f"Ваш тариф - <i>{get_tariff_name['Name']}</>\n" \
+                                   f"{tariff_text}" \
+                                   f"Баланс - <i>{mongo_user['Money']}</i>"
+
+                            await callback.message.edit_text(text=f"Профиль\n\n{text}",
+                                                             reply_markup=await MainForms.back_ikb(
+                                                                 target="MainForm",
+                                                                 action="get_main_form"),
+                                                             parse_mode="HTML"
+                                                             )
                         else:
-                            tariff_text = f"Тариф заканчивается  через {days_until_tariff} дней " \
-                                          f"- <i>{mongo_user['TariffEnd']}</i>\n"
-
-                        text = f"Ваш тариф - <i>{get_tariff_name['Name']}</>\n" \
-                               f"{tariff_text}" \
-                               f"Баланс - <i>{mongo_user['Money']}</i>"
-
-                        await callback.message.edit_text(text=f"Профиль\n\n{text}",
-                                                         reply_markup=await MainForms.back_ikb(
-                                                             target="MainForm",
-                                                             action="get_main_form"),
-                                                         parse_mode="HTML"
-                                                         )
+                            await callback.message.edit_text(text="Тарифа который у вас подключен сейчас не доступен",
+                                                             reply_markup=await MainForms.back_ikb(
+                                                                 target="MainForm",
+                                                                 action="get_main_form"),
+                                                             )
 
                 elif data.get("target") == "Tariff":
                     if data.get("action") == "get_tariff":
@@ -320,3 +329,58 @@ class MainForms:
                                                payload='some-invoice-payload-for-our-internal-use'
                                                )
                         pass
+
+                elif data.get('target') == "PromoCode":
+                    if data.get('action') == "get_promo":
+                        await callback.message.edit_text(text="Введите промокод:",
+                                                         reply_markup=await MainForms.back_ikb(
+                                                             target="MainForm",
+                                                             action="get_main_form"
+                                                         ))
+                        await UserStates.PromoCode.set()
+
+        if message:
+            await message.delete()
+
+            try:
+                await bot.delete_message(
+                    chat_id=message.from_user.id,
+                    message_id=message.message_id - 1
+                )
+            except BadRequest:
+                pass
+
+            if state:
+                if await state.get_state() == "UserStates:PromoCode":
+                    data_promoCode = ['1020', '1021', '1022', '1023']
+
+                    if message.text in data_promoCode:
+                        user = await MongoCRUDUser.get(telegram_id=message.from_user.id)
+                        money = 50
+                        result_money = Decimal(user['Money']) + Decimal(money)
+
+                        update_money = await MongoCRUDUser.update(email=user['Email'],
+                                                                  password=user['Password'],
+                                                                  money=int(result_money))
+                        if update_money:
+
+                            await message.answer(text="Промокод успешно активирован\n"
+                                                      "на ваш счет зачислено ..р",
+                                                 reply_markup=await MainForms.back_ikb(
+                                                     target="MainForm",
+                                                     action="get_main_form"
+                                                 ))
+                        else:
+                            await message.answer(text="Промокод <i>не активировался</i>",
+                                                 reply_markup=await MainForms.back_ikb(
+                                                     target="MainForm",
+                                                     action="get_main_form"),
+                                                 parse_mode="HTML"
+                                                 )
+
+                        await state.finish()
+                    else:
+                        await state.finish()
+                        await message.answer(text="Данного промокода нету",
+                                             reply_markup=await MainForms.get_profile())
+
